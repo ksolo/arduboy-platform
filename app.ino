@@ -15,6 +15,9 @@ PROGMEM const uint8_t block[] = {
     0x81, 0x81, 0x81, 0xFF,
 };
 
+bool isOverSurface(void);
+int surfaceHeight(int);
+
 void setup()
 {
     arduboy.begin();
@@ -43,7 +46,25 @@ void loop()
         arduboy.drawBitmap(platformX + (8 * i), platformY, block, 8, 8, WHITE);
     }
 
+    if (!isOverSurface() || surfaceHeight(xPos) > (yPos + 8)) {
+        yPos += MOVEMENT_RATE;
+    }
+
     arduboy.drawBitmap(xPos, yPos, player, 8, 8, WHITE);
 
     arduboy.display();
+}
+
+bool isOverSurface(void)
+{
+    // this is specific to the game since we know the layout
+    if (((xPos <= 56 || xPos >= 72 || xPos + 8 >= 72)) && (yPos + 8) <= 56) return true;
+    if ((xPos > 56 || xPos < 72) && yPos < 24) return true;
+    return false;
+}
+
+int surfaceHeight(int horizontal)
+{
+    if (horizontal <= 56 || horizontal >= 72) return 56;
+    return 32;
 }

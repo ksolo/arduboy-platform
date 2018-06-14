@@ -2,8 +2,14 @@
 Arduboy2 arduboy;
 
 const float MOVEMENT_RATE = 0.25;
+
 float xPos = 0.0;
 float yPos = 48.0;
+float jumpBase;
+
+bool jumping = false;
+
+const int JUMP_INCREASE = 16;
 
 PROGMEM const uint8_t player[] = {
     0xFF, 0xFF, 0xFF, 0xFF,
@@ -14,6 +20,7 @@ PROGMEM const uint8_t block[] = {
     0xFF, 0x81, 0x81, 0x81,
     0x81, 0x81, 0x81, 0xFF,
 };
+
 
 bool isOverSurface(void);
 int surfaceHeight(int);
@@ -27,6 +34,8 @@ void setup()
 void loop()
 {
     arduboy.clear();
+    arduboy.setCursor(0,0);
+    arduboy.print("Jumping: ");
 
     if (arduboy.pressed(LEFT_BUTTON)) {
         xPos -= MOVEMENT_RATE;
@@ -46,7 +55,21 @@ void loop()
         arduboy.drawBitmap(platformX + (8 * i), platformY, block, 8, 8, WHITE);
     }
 
-    if (!isOverSurface() || surfaceHeight(xPos) > (yPos + 8)) {
+    if (arduboy.justPressed(B_BUTTON)) {
+        jumping = true;
+        jumpBase = yPos;
+        yPos -= MOVEMENT_RATE;
+    }
+
+    if (arduboy.pressed(B_BUTTON) && !arduboy.justPressed(B_BUTTON)) {
+        if (jumpBase - JUMP_INCREASE <= yPos) {
+            jumping = false;
+        } else {
+            yPos -= MOVEMENT_RATE;
+        }
+    }
+
+    if (!isOverSurface() || ((surfaceHeight(xPos) > (yPos + 8)) && !jumping)) {
         yPos += MOVEMENT_RATE;
     }
 

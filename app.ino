@@ -1,15 +1,9 @@
 #include <Arduboy2.h>
 Arduboy2 arduboy;
 
-const float MOVEMENT_RATE = 0.25;
-
-float xPos = 0.0;
-float yPos = 48.0;
-float jumpBase;
-
-bool jumping = false;
-
-const int JUMP_INCREASE = 16;
+const float MOVEMENT_RATE = 0.50;
+const int JUMP_INCREASE = 32;
+bool b_pressed = false;
 
 PROGMEM const uint8_t player[] = {
     0xFF, 0xFF, 0xFF, 0xFF,
@@ -21,6 +15,14 @@ PROGMEM const uint8_t block[] = {
     0x81, 0x81, 0x81, 0xFF,
 };
 
+struct player_state {
+    float xPos;
+    float yPos;
+    float jumpBase;
+    bool jumping :1;
+};
+
+player_state p1 = { 0.0, 48.0, 48.0, false };
 
 bool isOverSurface(void);
 int surfaceHeight(int);
@@ -34,14 +36,12 @@ void setup()
 void loop()
 {
     arduboy.clear();
-    arduboy.setCursor(0,0);
-    arduboy.print("Jumping: ");
 
     if (arduboy.pressed(LEFT_BUTTON)) {
-        xPos -= MOVEMENT_RATE;
+        p1.xPos -= MOVEMENT_RATE;
     }
     if (arduboy.pressed(RIGHT_BUTTON)) {
-        xPos += MOVEMENT_RATE;
+        p1.xPos += MOVEMENT_RATE;
     }
 
     for(int i = 0; i < 128; i += 8) {
@@ -55,25 +55,27 @@ void loop()
         arduboy.drawBitmap(platformX + (8 * i), platformY, block, 8, 8, WHITE);
     }
 
-    if (arduboy.justPressed(B_BUTTON)) {
-        jumping = true;
-        jumpBase = yPos;
-        yPos -= MOVEMENT_RATE;
-    }
-
-    if (arduboy.pressed(B_BUTTON) && !arduboy.justPressed(B_BUTTON)) {
-        if (jumpBase - JUMP_INCREASE <= yPos) {
-            jumping = false;
+    if (arduboy.pressed(B_BUTTON)) {
+        if(p1.jumping) {
+            if (p1.jumpBase - JUMP_INCREASE >= p1.yPos) {
+                p1.jumping = false;
+            } else {
+                p1.yPos -= MOVEMENT_RATE;
+            }
         } else {
-            yPos -= MOVEMENT_RATE;
+            if(surfaceHeight(p1.xPos) == p1.yPos + 8) {
+                p1.jumping = true;
+            }
         }
     }
 
-    if (!isOverSurface() || ((surfaceHeight(xPos) > (yPos + 8)) && !jumping)) {
-        yPos += MOVEMENT_RATE;
+    if (isOverSurface() && ((surfaceHeight(p1.xPos) > p1.yPos + 8))) {
+        if (!p1.jumping) {
+            p1.yPos += MOVEMENT_RATE;
+        }
     }
 
-    arduboy.drawBitmap(xPos, yPos, player, 8, 8, WHITE);
+    arduboy.drawBitmap(p1.xPos, p1.yPos, player, 8, 8, WHITE);
 
     arduboy.display();
 }
@@ -81,8 +83,8 @@ void loop()
 bool isOverSurface(void)
 {
     // this is specific to the game since we know the layout
-    if (((xPos <= 56 || xPos >= 72 || xPos + 8 >= 72)) && (yPos + 8) <= 56) return true;
-    if ((xPos > 56 || xPos < 72) && yPos < 24) return true;
+    if (((p1.xPos <= 56 || p1.xPos >= 72 || p1.xPos + 8 >= 72)) && (p1.yPos + 8) <= 56) return true;
+    if ((p1.xPos > 56 || p1.xPos < 72) && p1.yPos < 24) return true;
     return false;
 }
 
